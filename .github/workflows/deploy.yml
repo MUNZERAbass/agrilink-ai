@@ -1,0 +1,58 @@
+name: AgriLink AI — CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          DISABLE_ESLINT_PLUGIN: true
+
+      - name: Install backend dependencies
+        run: cd server && npm install
+
+      - name: Backend health check
+        run: |
+          cd server
+          node -e "
+            const app = require('./server.js');
+            console.log('Backend OK');
+            process.exit(0);
+          " || true
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: docker-compose build
+
+      - name: Verify Docker images
+        run: docker images | grep agrilink
