@@ -11,10 +11,16 @@ connectDB();
 
 const app = express();
 
-// Middleware — allow any localhost port
+// Middleware — allow localhost + Vercel + Railway
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+    if (
+      !origin ||
+      origin.startsWith('http://localhost') ||
+      origin.startsWith('http://127.0.0.1') ||
+      origin.includes('vercel.app') ||
+      origin.includes('railway.app')
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
