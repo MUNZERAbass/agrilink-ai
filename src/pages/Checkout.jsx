@@ -24,6 +24,62 @@ export default function Checkout() {
     phone: user?.phone || '',
     paymentMethod: 'cash_on_delivery',
     notes: '',
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    // Simulate MoMo payment for MTN/Airtel
+    if (form.paymentMethod === 'mtn_momo' || form.paymentMethod === 'airtel_money') {
+      await simulateMoMoPayment(form.phone, grandTotal, form.paymentMethod);
+    }
+
+    const orderItems = cart.map((item) => ({
+      product: item._id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image,
+    }));
+
+    await api.post('/orders', {
+      items: orderItems,
+      deliveryAddress: {
+        district: form.district,
+        sector: form.sector,
+        details: form.details,
+      },
+      paymentMethod: form.paymentMethod,
+      notes: form.notes,
+    });
+
+    setSuccess(true);
+    clearCart();
+    toast.success('Order placed successfully! 🎉');
+  } catch (err) {
+    toast.error(err.message || err.response?.data?.message || 'Failed to place order');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const simulateMoMoPayment = async (phone, amount, method) => {
+  return new Promise((resolve, reject) => {
+    toast.loading(`📱 Sending ${method === 'mtn_momo' ? 'MTN MoMo' : 'Airtel Money'} request to ${phone}...`, { id: 'momo' });
+    setTimeout(() => {
+      toast.dismiss('momo');
+      // Simulate 90% success rate
+      if (Math.random() > 0.1) {
+        toast.success(`✅ Payment of ${amount.toLocaleString()} RWF confirmed!`, { id: 'momo-success' });
+        resolve({ status: 'success', transactionId: `TXN${Date.now()}` });
+      } else {
+        toast.error('Payment failed. Please try again.', { id: 'momo-error' });
+        reject(new Error('Mobile Money payment failed. Please try again.'));
+      }
+    }, 3000); // 3 second simulation
+  });
+};
+
   });
 
   const delivery = total > 10000 ? 0 : 1500;
